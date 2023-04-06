@@ -1,0 +1,132 @@
+TCode Description Source N Code
+6 "PPI: Intermediate Materials" FRED 100 PPIITM
+6 "PPI: Crude Materials" FRED 101 PPICRM
+6 "Crude Oil Prices: WTI" HAVER 102 oilprice
+6 "PPI: Commodities" FRED 103 PPICMM
+6 "CPI: All Items" FRED 104 CPIAUCSL
+6 "CPI: Apparel" FRED 105 CPIAPPSL
+6 "CPI: Transportation" FRED 106 CPITRNSL
+6 "CPI: Medical Care" FRED 107 CPIMEDSL
+6 "CPI: Commodities" FRED 108 CUSR0000SAC
+6 "CPI: Durables" FRED 109 CUUR0000SAD
+6 "CPI: Services" FRED 110 CUSR0000SAS
+6 "CPI: All Items Less Food" FRED 111 CPIULFSL
+6 "CPI: All items less shelter" FRED 112 CUUR0000SA0L2
+6 "CPI: All items less medical care" FRED 113 CUSR0000SA0L5
+6 "PCE: Chain-type Price Index" FRED 114 PCEPI
+6 "PCE: Durable goods" FRED 115 DDURRG3M086SBEA
+6 "PCE: Nondurable goods" FRED 116 DNDGRG3M086SBEA
+6 "PCE: Services" FRED 117 DSERRG3M086SBEA
+1 "Industrial Production: Manufacturing" FRED 118 IPMAN
+2 "Capacity Utilization: Manufacturing" FRED 119 MCUMFN
+2 "Capacity Utilization: Total Industry" FRED 120 TCU
+1 "Manufacturers’ Index of New Orders of Durable Goods" FRED 121 M0684AUSM343SNBR
+1 "Manufacturers’ Inventories, Total for United States" FRED 122 M0504AUSM343SNBR
+5 "Manufacturers’ New Orders: Durable Goods" FRED 123 DGORDER
+1 "3-Month Commercial Paper Minus Federal Funds Rate" FRED 124 CPFFM
+1 "Producer Price Index by Industry: Total Manufacturing" FRED 125 PCUOMFGOMFG
+1 "ISM Composite Index" HAVER 126 ISMC
+1 "ISM Manufacturing: Supply Index" HAVER 127 NAPMVDI
+5 "Standard & poor 500: Price Index" HAVER 128 SP500E
+2 "Standard & poor 500: Dividend Yield" HAVER 129 SDY5COMM
+5 "Standard & poor 500: Price/Earnings Ratio" HAVER 130 SPE5COOM
+5 "Gross Domestic Product" FRED 131 GDPC1
+6 "St. Louis Adjusted Monetary Base" FRED 67 AMBSL
+6 "Total Reserves" FRED 68 TOTRESNS
+0 "Nonborrowed Reserves" FRED 69 NONBORRES
+6 "Commercial and Industrial Loans" FRED 70 BUSLOANS
+2 "Real Estate Loans" FRED 71 REALLN
+6 "Total Nonrevolving Credit" FRED 72 NONREVSL
+6 "MZM Money Stock" FRED 73 MZMSL
+6 "Consumer Motor Vehicle Loans" FRED 74 DTCOLNVHFNM
+6 "Total Consumer Loans and Leases" FRED 75 DTCTHFNM
+6 "Securities in Bank Credit" FRED 76 INVEST
+2 "Effective Federal Funds Rate" FRED 77 FEDFUNDS
+2 "3-Month AA Comm. Paper Rate" FRED 78 CP3M
+2 "3-Month T-bill" FRED 79 TB3MS
+2 "6-Month T-bill" FRED 80 TB6MS
+2 "1-Year T-bond" FRED 81 GS1
+2 "5-Year T-bond" FRED 82 GS5
+2 "10-Year T-bond" FRED 83 GS10
+2 "Aaa Corporate Bond Yield" FRED 84 AAA
+2 "Baa Corporate Bond Yield" FRED 85 BAA
+1 "3 Mo. - FFR spread" FRED 86 TB3SMFFM
+1 "6 Mo. - FFR spread" FRED 87 TB6SMFFM
+1 "1 yr. - FFR spread" FRED 88 T1YFFM
+1 "5 yr. - FFR spread" FRED 89 T5YFFM
+1 "10 yr. - FFR spread" FRED 90 T10YFFM
+1 "Aaa - FFR spread" FRED 91 AAAFFM
+1 "Baa - FFR spread" FRED 92 BAAFFM
+5 "Trade Weighted U.S. FX Rate" FRED 93 TWEXMMTH
+5 "Switzerland / U.S. FX Rate" FRED 94 EXSZUS
+5 "Japan / U.S. FX Rate" FRED 95 EXJPUS
+5 "U.S. / U.K. FX Rate" FRED 96 EXUSUK
+5 "Canada / U.S. FX Rate" FRED 97 EXCAUS
+6 "PPI: Finished Goods" FRED 98 PPIFGS
+6 "PPI: Finished Consumer Goods" FRED 99 PPIFCG
+5 "All Employees: Wholesale Trade" FRED 34 USWTRADE
+5 "All Employees: Retail Trade" FRED 35 USTRADE
+5 "All Employees: Financial Activities" FRED 36 USFIRE
+5 "All Employees: Government" FRED 37 USGOVT
+1 "Hours: Goods-Producing" FRED 38 CES0600000007
+2 "Overtime Hours: Manufacturing" FRED 39 AWOTMAN
+1 "Hours: Manufacturing" FRED 40 AWHMAN
+6 "Ave. Hourly Earnings: Goods" FRED 41 CES0600000008
+6 "Ave. Hourly Earnings: Construction" FRED 42 CES2000000008
+6 "Ave. Hourly Earnings:" FRED 43 CES3000000008
+4 "Manufacturing Starts: Total" FRED 44 HOUST
+4 "Starts: Northeast" FRED 45 HOUSTNE
+4 "Starts: Midwest" FRED 46 HOUSTMW
+4 "Starts: South" FRED 47 HOUSTS
+4 "Starts: West" FRED 48 HOUSTW
+4 "Permits" FRED 49 PERMIT
+4 "Permits: Northeast" FRED 50 PERMITNE
+4 "Permits: Midwest" FRED 51 PERMITMW
+4 "Permits: South" FRED 52 PERMITS
+4 "Permits: West" FRED 53 PERMITW
+5 "Real PCE" FRED 54 DPCERA3M086SBEA
+5 "Real M&T Sales" FRED 55 CMRMTSPL
+5 "Retail and Food Services Sales" FRED 56 RETAIL
+5 "Orders: Consumer Goods" FRED 57 ACOGNO
+5 "Orders: Nondefense Capital Goods" FRED 58 ANDENO
+5 "Unfilled Orders: Durable Goods" FRED 59 AMDMUO
+5 "Total Business Inventories" FRED 60 BUSINV
+2 "Inventories to Sales Ratio" FRED 61 ISRATIO
+2 "Consumer Sentiment Index" FRED 62 UMCSENT
+6 "M1 Money Stock" FRED 63 M1SL
+6 "M2 Money Stock" FRED 64 M2SL
+6 "MABMM301USM189S in FRED, M3 for the United States" FRED 65 M3SL
+5 "Real M2 Money Stock" FRED 66 M2REAL
+5 "Real Personal Income" FRED 1 RPI
+5 "RPI ex. Transfers" FRED 2 W875RX1
+5 "IP Index" FRED 3 INDPRO
+5 "IP: Final Products and Supplies" FRED 4 IPFPNSS
+5 "IP: Final Products" FRED 5 IPFINAL
+5 "IP: Consumer Goods" FRED 6 IPCONGD
+5 "IP: Durable Consumer Goods" FRED 7 IPDCONGD
+5 "IP: Nondurable Consumer Goods" FRED 8 IPNCONGD
+5 "IP: Business Equipment" FRED 9 IPBUSEQ
+5 "IP: Materials" FRED 10 IPMAT
+5 "IP: Durable Materials" FRED 11 IPDMAT
+5 "IP: Nondurable Materials" FRED 12 IPNMAT
+5 "IP: Manufacturing" FRED 13 IPMANSICS
+5 "IP: Residential Utilities" FRED 14 IPB51222S
+5 "IP: Fuels" FRED 15 IPFUELS
+5 "Civilian Labor Force" FRED 16 CLF16OV
+5 "Civilian Employment" FRED 17 CE16OV
+2 "Civilian Unemployment Rate" FRED 18 UNRATE
+2 "Average Duration of Unemployment" FRED 19 UEMPMEAN
+5 "Civilians Unemployed ¡5 Weeks" FRED 20 UEMPLT5
+5 "Civilians Unemployed 5-14 Weeks" FRED 21 UEMP5TO14
+5 "Civilians Unemployed ¿15 Weeks" FRED 22 UEMP15OV
+5 "Civilians Unemployed 15-26 Weeks" FRED 23 UEMP15T26
+5 "Civilians Unemployed ¿27 Weeks" FRED 24 UEMP27OV
+5 "All Employees: Total nonfarm" FRED 25 PAYEMS
+5 "All Employees: Goods-Producing" FRED 26 USGOOD
+5 "All Employees: Mining and Logging" FRED 27 CES1021000001
+5 "All Employees: Construction" FRED 28 USCONS
+5 "All Employees: Manufacturing" FRED 29 MANEMP
+5 "All Employees: Durable goods" FRED 30 DMANEMP
+5 "All Employees: Nondurable goods" FRED 31 NDMANEMP
+5 "All Employees: Service Industries" FRED 32 SRVPRD
+5 "All Employees: TT&U" FRED 33 USTPU
