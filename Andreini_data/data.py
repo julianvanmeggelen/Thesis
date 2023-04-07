@@ -6,9 +6,10 @@ from tqdm import tqdm
 import pickle
 import warnings
 import numpy as np
+import time
+
 warnings.simplefilter(action='ignore', category=FutureWarning)
 KEY = "51692ad112e439586cfe21f4fb436f50"
-
 
 #Define transform as specified in Andreini
 def apply_lagpoly(x):
@@ -31,18 +32,19 @@ TRANSFORMS = {
     6: lambda x: apply_lagpoly(np.log(x)),
 }
 
-def apply_transform(df_conc: pd.DataFrame, codes: pd.DataFrame) -> pd.DataFrame:
+def apply_transform(dfs: dict, codes: pd.DataFrame) -> pd.DataFrame:
     """
     Apply transforms as specified in appendix of Andreini
     """
     for i, row in codes.iterrows():
         id = row['Code']
-        if id in df_conc.columns:
+        if id in dfs.keys():
             transform  = int(row['TCode'])
-            df_conc[id] = TRANSFORMS[transform](df_conc[id].values)
+            print(dfs[id].columns)
+            dfs[id][id] = TRANSFORMS[transform](dfs[id][id].values)
         else:
             print(f"Could not find {id} in columns when applying transforms")
-    return df_conc
+    return dfs
 
 def fetch_series(id: str):
     response = requests.get(f"https://api.stlouisfed.org/fred/series/observations",
@@ -74,6 +76,7 @@ def fetch_all_series(codes:list[str]) -> dict:
         except ValueError as e:
             err += str(e)+ '\n'
             continue
+        time.sleep(0.01)#avoid request limit
     print(err)
     return res
 
@@ -86,10 +89,9 @@ if __name__ == "__main__":
     codes_fred = codes[codes['Source'] == 'FRED']
     print(len(codes_fred))
     dfs = fetch_all_series(codes_fred['Code'])
+    dfs = apply_transform(dfs, codes_fred)
     print(len(dfs))
     print(f"Fetched data for {len(dfs.keys())} codes: {list(dfs.keys())} ")
     df_conc = merge_dfs(dfs)
-    df_conc.to_csv('data_raw.csv')
-    df_conc = apply_transform(df_conc, codes_fred)
     df_conc.to_csv('data_transformed.csv')
 
