@@ -51,8 +51,30 @@ class Decoder(nn.Module):
         out = self.sequential(x)
         return out
 
+class SelfAttentionEncoder(nn.Module):
+    def __init__(self, hidden_dim: list = [500,200,100], activation: nn.Module = nn.Tanh(), use_batchnorm: bool = True):
+        super().__init__()
+        self.n_hidden = len(hidden_dim)
+        self.hidden_dim: list = hidden_dim
+        self.activation: nn.Module = activation
+        self.use_batchnorm: bool = use_batchnorm
+        self.sequential = self._get_sequential()
+        self.attention = nn.MultiheadAttention(embed_dim = hidden_dim[0], num_heads=1)
 
+    def _get_sequential(self): #compile to nn.Sequential
+        res = nn.Sequential()
+        for i, lin in enumerate(self.hidden_dim[:-1]):
+            res.append(nn.Linear(self.hidden_dim[i],self.hidden_dim[i+1]))
+            res.append(self.activation)
+            if self.use_batchnorm and i != self.n_hidden-2:
+                res.append(nn.BatchNorm1d(self.hidden_dim[i+1]))
+        return res
 
+    def forward(self, x):
+        out = self.attention(x,x,x,need_weights=False)
+        out = self.sequential(x)
+        return out
+    
 class AutoEncoder(nn.Module):
     def __init__(self, enc: Encoder, dec: Decoder):
         super().__init__()
@@ -64,3 +86,9 @@ class AutoEncoder(nn.Module):
         out = self.enc(x)
         out = self.dec(out)
         return out
+
+
+def get_trainable_params(model: nn.Module):
+    model_parameters = filter(lambda p: p.requires_grad, model.parameters())
+    params = sum([np.prod(p.size()) for p in model_parameters])
+    return params
