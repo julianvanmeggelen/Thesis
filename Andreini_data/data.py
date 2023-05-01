@@ -92,7 +92,9 @@ def load_y(daterange = ['1973-01-01', '2017-01-01']):
     df = df.loc[daterange[0]:daterange[1]]
     df = df.dropna(axis=1, how='any')
     y = df.values
-    y= (y-y.min(axis=0))/(y.max(axis=0)-y.min(axis=0))
+    #y= (y-y.min(axis=0))/(y.max(axis=0)-y.min(axis=0))
+    y = y - y.mean(axis=0)
+    y = y / np.std(y,axis=0)
     return y
 
 if __name__ == "__main__":
