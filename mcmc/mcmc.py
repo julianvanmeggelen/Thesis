@@ -6,7 +6,9 @@ import numpy as np
 from torch.utils.data import DataLoader, Subset, TensorDataset
 import sys
 sys.path.append('../')
-from BasicAutoEncoder.model import train_val_split, AutoEncoder, OrthoLoss, val_mse
+from BasicAutoEncoder.model import train_val_split, AutoEncoder, OrthoLoss, val_mse, init_train_hist, append_train_hist
+from BasicAutoEncoder.Metric import Metric
+
 from mcmc.ErrorProcess import ErrorProcess
 
 def check_convergence(loss_hist: list, eps = 1e-10):
@@ -16,20 +18,19 @@ def check_convergence(loss_hist: list, eps = 1e-10):
         return True
     return ((np.array(loss_hist)[-11:-1] - np.array(loss_hist)[-10:]) < eps).all()
 
-def trainMCMC(X: torch.Tensor, model: AutoEncoder, errorProcess: ErrorProcess, n_epoch:int, optimizer: optim.Optimizer = optim.Adam, criterion: nn.Module = nn.MSELoss(), batch_size: int=64, lr: float = 0.0001, val_split = 0.3, use_val = True, epoch_callback=None, verbose: bool = True):
+def trainMCMC(X_train: torch.Tensor, model: AutoEncoder, errorProcess: ErrorProcess, n_epoch:int, X_val:torch.Tensor, optimizer: optim.Optimizer = optim.Adam, criterion: nn.Module = nn.MSELoss(), batch_size: int=64, lr: float = 0.0001, epoch_callback=None, verbose: bool = True,  metrics: list[Metric] = None):
     """
     MCMC gradient descent
     """
-    if not isinstance(X, torch.Tensor):
-        X = torch.Tensor(X)
-    if use_val:
-        X_train, X_val = train_val_split(X, val_split=val_split, batch_size=batch_size, loader=False)
-        print(len(X), len(X_val))
-    else:
-        X_train = X# DataLoader(X, batch_size=batch_size)
+    use_val = (X_val is not None)
+    if not isinstance(X_train, torch.Tensor): #We don't want to use a DataLoader at this point
+        X_train = torch.Tensor(X_train)
+    if use_val and not isinstance(X_val, DataLoader):
+        X_val= torch.Tensor(X_val)
    
     optimizer = optimizer(model.parameters(), lr=lr)
-    train_hist = {'loss': [], 'val_loss':[]} 
+    train_hist = init_train_hist(metrics)
+
     if isinstance(criterion, OrthoLoss):
         criterion.set_hist(train_hist) 
 
@@ -56,14 +57,15 @@ def trainMCMC(X: torch.Tensor, model: AutoEncoder, errorProcess: ErrorProcess, n
                     train_hist['val_loss'].append(val_loss)
             if epoch_callback: #callback for e.g hyperparamer optimization
                 epoch_callback(train_hist)
-            train_hist['loss'].append(running_loss/len(batch_dl))
+            train_hist['train_loss'].append(running_loss/len(batch_dl))
+            train_hist = append_train_hist(X_train = X_train,X_val = X_val,mod=model,train_hist = train_hist, metrics = metrics)
             if verbose:
-                print(f"Epoch {epoch} | {train_hist['loss'][-1]}", end='\r')
+                print(f"Epoch {epoch} | {train_hist['train_loss'][-1]}", end='\r')
         eps = X_arr- model(X_train).detach().numpy()
         errorProcess.fit(eps)
         iter+=1
-        convergence = check_convergence(train_hist['loss'])
+        convergence = check_convergence(train_hist['train_loss'])
         if verbose:
-            print( iter, train_hist['loss'][-1], end='\n')
+            print( iter, train_hist['train_loss'][-1], end='\n')
 
     return train_hist

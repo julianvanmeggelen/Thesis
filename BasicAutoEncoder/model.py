@@ -5,6 +5,11 @@ from torch import optim
 import numpy as np
 from torch.utils.data import DataLoader, Subset, TensorDataset
 
+import sys
+sys.path.append('../')
+
+from BasicAutoEncoder.Metric import Metric
+
 class OrthoLoss(nn.Module):
     def __init__(self, enc, alpha, trainHist=None):
         super().__init__()
@@ -158,19 +163,42 @@ def val_mse(model: nn.Module, X: torch.utils.data.DataLoader):
         batch_loss = F.mse_loss(pred, batch)
         res += batch_loss 
     return res.item()/len(X)
-    
-def train(X: torch.Tensor, model: AutoEncoder, n_epoch:int, optimizer: optim.Optimizer = optim.Adam, criterion: nn.Module = nn.MSELoss(), batch_size: int=64, lr: float = 0.0001, val_split = 0.3, use_val = True, epoch_callback=None, verbose: bool = True):
+
+
+
+def init_train_hist(metrics:list[Metric] = None) -> dict:
+    train_hist = {'train_loss': [], 'val_loss':[]} #these are bare metrics reported 
+    if metrics is not None:
+        for metric in metrics:
+            train_hist[f"train_{metric.key}"] = []
+            train_hist[f"val_{metric.key}"] = []
+    return train_hist
+
+def append_train_hist(X_train: torch.Tensor, mod: nn.Module, train_hist: dict, metrics:list[Metric] = None, X_val:torch.Tensor = None) -> dict:
+    mod.eval()
+    if metrics is not None:
+        for metric in metrics:
+            train_hist[f"train_{metric.key}"].append(metric(X=X_train,y=X_train,mod=mod, mode='train'))
+            if X_val is not None:
+                train_hist[f"val_{metric.key}"].append(metric(X=X_val,y=X_val,mod=mod, mode='val'))
+    mod.train()
+    return train_hist
+                      
+def train(X_train: torch.Tensor, model: AutoEncoder, n_epoch:int, X_val: torch.Tensor = None, optimizer: optim.Optimizer = optim.Adam, criterion: nn.Module = nn.MSELoss(), batch_size: int=64, lr: float = 0.0001, epoch_callback=None, verbose: bool = True, metrics: list[Metric] = None):
     """
     Vanilla gradient descent using Adam
     """
-    if use_val:
-        X_train, X_val = train_val_split(X, val_split=val_split, batch_size=batch_size)
-        print(len(X), len(X_val))
-    else:
-        X_train = DataLoader(X, batch_size=batch_size)
+    use_val = (X_val is not None)
+    if not isinstance(X_train, DataLoader):
+        X_train = DataLoader(X_train, batch_size=batch_size)
+    if use_val and not isinstance(X_val, DataLoader):
+        X_val = DataLoader(X_val, batch_size=batch_size)
    
     optimizer = optimizer(model.parameters(), lr=lr)
-    train_hist = {'loss': [], 'val_loss':[]} 
+
+    train_hist = init_train_hist(metrics)
+
+    
     if isinstance(criterion, OrthoLoss):
         criterion.set_hist(train_hist) 
     for epoch in range(n_epoch):
@@ -187,7 +215,8 @@ def train(X: torch.Tensor, model: AutoEncoder, n_epoch:int, optimizer: optim.Opt
                 train_hist['val_loss'].append(val_loss)
         if epoch_callback: #callback for e.g hyperparamer optimization
             epoch_callback(train_hist)
-        train_hist['loss'].append(running_loss/len(X_train))
+        train_hist['train_loss'].append(running_loss/len(X_train))
+        train_hist = append_train_hist(X_train,X_val,model,train_hist,metrics)
         if verbose:
-            print(f"Epoch {epoch} | {train_hist['loss'][-1]}", end='\r')
+            print(f"Epoch {epoch} | {train_hist['train_loss'][-1]}", end='\r')
     return train_hist

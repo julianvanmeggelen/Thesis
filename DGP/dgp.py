@@ -8,6 +8,13 @@ from BasicAutoEncoder.model import Encoder, Decoder, AutoEncoder, SelfAttentionE
 from typing import TypedDict
 from statsmodels.tsa.vector_ar.var_model import VARProcess
 from statsmodels.tsa.vector_ar.util import varsim
+from typing import Tuple
+
+def getSaved(index: int = 1, T:int = 2048) -> Tuple[np.ndarray, np.ndarray, nn.Module]:
+    y = np.load(f"../DGP//saved/y_{index}.npy")[:T]
+    f = np.load(f"../DGP/saved/f_{index}.npy")[:T]
+    dec = np.load(f"../DGP/saved/dec_{index}.pt")
+    return f,y,dec
 
 def simulateVar1(x0, delta, lamda, T, mu, omega, warmup): #Var 1
     assert delta.shape[0] == x0.shape[0] == lamda.shape[0] == x0.shape[0] == omega.shape[0] == mu.shape[0], 'Incorrect shapes'

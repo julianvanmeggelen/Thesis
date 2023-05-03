@@ -12,8 +12,9 @@ def get_trainable_params(model: nn.Module):
 
 def plot_train_hist(train_hist: dict, log:bool=True):
     plt.figure(figsize=(5,3))
-    plt.plot(np.log(train_hist['loss']) if log else train_hist['loss'])
-    plt.plot(np.log(train_hist['val_loss']) if log else train_hist['val_loss'])
+    plt.plot(np.log(train_hist['train_loss']) if log else train_hist['train_loss'], label='Train')
+    plt.plot(np.log(train_hist['val_loss']) if log else train_hist['val_loss'], label='Val')
+    plt.legend()
 
 def plot_factor_estimates(model: AutoEncoder, X: np.ndarray):
     if not isinstance(X, torch.Tensor):
