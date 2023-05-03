@@ -12,7 +12,7 @@ from mcmc.ErrorProcess import ErrorProcess
 def check_convergence(loss_hist: list, eps = 1e-10):
     if len(loss_hist) < 11:
         return False
-    if len(loss_hist) > 500:
+    if len(loss_hist) >= 100:
         return True
     return ((np.array(loss_hist)[-11:-1] - np.array(loss_hist)[-10:]) < eps).all()
 
