@@ -13,7 +13,7 @@ from typing import Tuple
 def getSaved(index: int = 1, T:int = 2048) -> Tuple[np.ndarray, np.ndarray, nn.Module]:
     y = np.load(f"../DGP//saved/y_{index}.npy")[:T]
     f = np.load(f"../DGP/saved/f_{index}.npy")[:T]
-    dec = np.load(f"../DGP/saved/dec_{index}.pt")
+    dec = torch.load(f"../DGP/saved/dec_{index}.pt")
     return f,y,dec
 
 def simulateVar1(x0, delta, lamda, T, mu, omega, warmup): #Var 1
@@ -63,7 +63,7 @@ def getSimulatedNonlinear(factor_dim:int, obs_dim:int, T:int, dec: Decoder = Non
     return f, y
 
 
-def getSimulatedNonlinearVarP(factor_dim:int, obs_dim:int, T:int, dec: Decoder = None, warmup: float=0.0, p: int = 5, p_eps: int = 0, covar_eps:np.ndarray = 1/30, covar_factor: np.ndarray = None, centered:bool=True):
+def getSimulatedNonlinearVarP(factor_dim:int, obs_dim:int, T:int, dec: Decoder = None, warmup: float=0.0, p: int = 5, p_eps: int = 0, covar_eps:np.ndarray = 1/30, covar_factor: np.ndarray = None, centered:bool=True, normalized: bool =False):
     f = simulateRandomVarP(d=factor_dim,p=p,T=T,T_warmup=400, diagonal=True, covar=covar_factor)
     if not dec:
         dec = Decoder(hidden_dim = [factor_dim, obs_dim])
@@ -76,9 +76,14 @@ def getSimulatedNonlinearVarP(factor_dim:int, obs_dim:int, T:int, dec: Decoder =
     else:
         obs_residual = simulateRandomVarP(d=obs_dim,p=p_eps,T=T,T_warmup=400, diagonal=True, covar=covar_eps)
 
-    y += obs_residual
     if centered:
         y = y-y.mean(axis=0)
+    if normalized:
+        y_min = y.min(axis=0)
+        y_max = y.max(axis=0)
+        y = (y-y_min)/(y_max-y_min)
+
+    y += obs_residual
     return f, y, obs_residual
 
 

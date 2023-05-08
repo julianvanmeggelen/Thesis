@@ -67,7 +67,7 @@ class IIDErrorProcess(ErrorProcess):
         self.cov = np.cov(eps_init.T) 
         if self.diagonal:
             self.cov = np.eye(self.n)*self.cov
-        print(self.mu.shape, self.cov.shape)
+        #print(self.mu.shape, self.cov.shape)
     
     def fit(self, resids: np.ndarray) -> None:
         self.mu = np.mean(resids, axis=0)

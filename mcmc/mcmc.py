@@ -11,22 +11,25 @@ from BasicAutoEncoder.Metric import Metric
 
 from mcmc.ErrorProcess import ErrorProcess
 
-def check_convergence(loss_hist: list, eps = 1e-10):
+def check_convergence(loss_hist: list, eps = 2e-10):
     if len(loss_hist) < 11:
         return False
     if len(loss_hist) >= 100:
         return True
     return ((np.array(loss_hist)[-11:-1] - np.array(loss_hist)[-10:]) < eps).all()
 
-def trainMCMC(X_train: torch.Tensor, model: AutoEncoder, errorProcess: ErrorProcess, n_epoch:int, X_val:torch.Tensor, optimizer: optim.Optimizer = optim.Adam, criterion: nn.Module = nn.MSELoss(), batch_size: int=64, lr: float = 0.0001, epoch_callback=None, verbose: bool = True,  metrics: list[Metric] = None):
+def trainMCMC(X_train: torch.Tensor, model: AutoEncoder, errorProcess: ErrorProcess, n_epoch:int, X_val:torch.Tensor, max_iter:int = None, optimizer: optim.Optimizer = optim.Adam, criterion: nn.Module = nn.MSELoss(), batch_size: int=64, lr: float = 0.0001, epoch_callback=None, verbose: bool = True,  metrics: list[Metric] = None):
     """
     MCMC gradient descent
     """
     use_val = (X_val is not None)
+
     if not isinstance(X_train, torch.Tensor): #We don't want to use a DataLoader at this point
         X_train = torch.Tensor(X_train)
     if use_val and not isinstance(X_val, DataLoader):
         X_val= torch.Tensor(X_val)
+
+    print(X_train.shape, X_val.shape if use_val else None)
    
     optimizer = optimizer(model.parameters(), lr=lr)
     train_hist = init_train_hist(metrics)
@@ -43,7 +46,7 @@ def trainMCMC(X_train: torch.Tensor, model: AutoEncoder, errorProcess: ErrorProc
         y_tilde = X_arr - errorProcess.conditionalExpectation()
         for epoch in range(n_epoch):
             y_tilde_mc = y_tilde + errorProcess.sample()
-            batch_dl = DataLoader(torch.Tensor(y_tilde_mc).float())
+            batch_dl = DataLoader(torch.Tensor(y_tilde_mc).float(), batch_size = batch_size, shuffle=True)
             running_loss = 0.0
             for i, batch in enumerate(batch_dl):
                 optimizer.zero_grad()
@@ -64,7 +67,7 @@ def trainMCMC(X_train: torch.Tensor, model: AutoEncoder, errorProcess: ErrorProc
         eps = X_arr- model(X_train).detach().numpy()
         errorProcess.fit(eps)
         iter+=1
-        convergence = check_convergence(train_hist['train_loss'])
+        convergence = iter > max_iter#check_convergence(train_hist['train_loss']) or (max_iter not None and iter > max_iter)
         if verbose:
             print( iter, train_hist['train_loss'][-1], end='\n')
 

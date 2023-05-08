@@ -4,6 +4,7 @@ import torch.nn.functional as F
 from torch import optim
 import numpy as np
 from torch.utils.data import DataLoader, Subset, TensorDataset
+from collections import OrderedDict
 
 import sys
 sys.path.append('../')
@@ -34,57 +35,59 @@ class OrthoLoss(nn.Module):
         return reprLoss + self.alpha * orthogonalLoss + torch.nn.functional.mse_loss(torch.mean(f, dim=0),torch.zeros(f.shape[1]))
         
 class Encoder(nn.Module):
-    def __init__(self, hidden_dim: list = [500,200,100], activation: nn.Module = nn.Tanh(), use_batchnorm: bool = False, lastLayerLinear: bool=False):
+    def __init__(self, hidden_dim: list = [500,200,100], activation: nn.Module = nn.Tanh(), use_batchnorm: bool = False, lastLayerLinear: bool=False, use_xavier:bool = True):
         super().__init__()
         self.n_hidden = len(hidden_dim)
         self.hidden_dim: list = hidden_dim
-        self.activation: nn.Module = activation
+        self.activation: nn.Module = activation if isinstance(activation, type) else type(activation) #get original object type, reinitialize at every layer, don't know if this is required
         self.use_batchnorm: bool = use_batchnorm
         self.lastLayerLinear = lastLayerLinear
+        self.use_xavier = use_xavier
         self.sequential = self._get_sequential()
-
+     
 
     def _get_sequential(self): #compile to nn.Sequential
-        res = nn.Sequential()
+        res = OrderedDict()
         for i, lin in enumerate(self.hidden_dim[:-1]):
-            res.append(nn.Linear(self.hidden_dim[i],self.hidden_dim[i+1]))
-            res.append(self.activation)
-            if self.use_batchnorm and i != self.n_hidden-2:
-                res.append(nn.BatchNorm1d(self.hidden_dim[i+1]))
-            
-        if self.lastLayerLinear:
-            res[-1] = nn.Identity()
+            res[f"linear_{i}"] = nn.Linear(self.hidden_dim[i],self.hidden_dim[i+1]) 
+            if self.use_xavier:
+                nn.init.xavier_uniform(res[f"linear_{i}"].weight)
 
-        return res
+            res[f"activation_{i}"] = nn.Identity() if i == len(self.hidden_dim)-2 and self.lastLayerLinear else self.activation()
+            if self.use_batchnorm and i != self.n_hidden-2:
+                res[f"batchnorm_{i}"]  = nn.BatchNorm1d(self.hidden_dim[i+1])
+
+        return nn.Sequential(res)
 
     def forward(self, x):
         out = self.sequential(x)
         return out
 
 class Decoder(nn.Module):
-    def __init__(self, linear: bool = False, hidden_dim: list = [100,200,500], activation: nn.Module = nn.Tanh(), use_batchnorm: bool = False, lastLayerLinear: bool=False):
+    def __init__(self, linear: bool = False, hidden_dim: list = [100,200,500], activation: nn.Module = nn.Tanh(), use_batchnorm: bool = False, lastLayerLinear: bool=False, use_xavier: bool = False):
         super().__init__()
         assert (linear and len(hidden_dim) == 2) or (not linear)
         self.n_hidden = len(hidden_dim)
         self.hidden_dim: list = hidden_dim
-        self.activation: nn.Module = activation
+        self.activation: nn.Module = activation if isinstance(activation, type) else type(activation) #get original object type, reinitialize at every layer, don't know if this is required
         self.use_batchnorm: bool = use_batchnorm
         self.lastLayerLinear = lastLayerLinear
+        self.use_xavier = use_xavier
         self.sequential = self._get_sequential()
 
     def _get_sequential(self): #compile to nn.Sequential
-        res = nn.Sequential()
+        res = OrderedDict()
         for i, lin in enumerate(self.hidden_dim[:-1]):
-            res.append(nn.Linear(self.hidden_dim[i],self.hidden_dim[i+1]))
-
-            if i < self.n_hidden -2:
-                res.append(self.activation)
+            res[f"linear_{i}"] = nn.Linear(self.hidden_dim[i],self.hidden_dim[i+1]) 
+            if self.use_xavier:
+                nn.init.xavier_uniform(res[f"linear_{i}"].weight)
+                
+            res[f"activation_{i}"] = nn.Identity() if i == len(self.hidden_dim)-2 and self.lastLayerLinear else self.activation()
+            #if i < self.n_hidden -2: #lastlayer always linear
+                #res.append(self.activation)
             if self.use_batchnorm and i < self.n_hidden-2:
-                res.append(nn.BatchNorm1d(self.hidden_dim[i+1]))
-
-        if self.lastLayerLinear:
-            res[-1] = nn.Identity()
-        return res
+                res[f"batchnorm_{i}"] = nn.BatchNorm1d(self.hidden_dim[i+1])
+        return nn.Sequential(res)
 
     def forward(self, x):
         out = self.sequential(x)
@@ -178,9 +181,17 @@ def append_train_hist(X_train: torch.Tensor, mod: nn.Module, train_hist: dict, m
     mod.eval()
     if metrics is not None:
         for metric in metrics:
-            train_hist[f"train_{metric.key}"].append(metric(X=X_train,y=X_train,mod=mod, mode='train'))
+            try:
+                train_hist[f"train_{metric.key}"].append(metric(X=X_train,y=X_train,mod=mod, mode='train'))
+            except Exception as e:
+                print(F"Exception encountered while computing metric {metric.key}: {e}")
+                train_hist[f"train_{metric.key}"].append(np.nan)
             if X_val is not None:
-                train_hist[f"val_{metric.key}"].append(metric(X=X_val,y=X_val,mod=mod, mode='val'))
+                try:
+                    train_hist[f"val_{metric.key}"].append(metric(X=X_val,y=X_val,mod=mod, mode='val'))
+                except Exception as e:
+                    train_hist[f"val_{metric.key}"].append(np.nan)
+                    print(F"Exception encountered while computing metric {metric.key}: {e}")
     mod.train()
     return train_hist
                       
@@ -220,3 +231,53 @@ def train(X_train: torch.Tensor, model: AutoEncoder, n_epoch:int, X_val: torch.T
         if verbose:
             print(f"Epoch {epoch} | {train_hist['train_loss'][-1]}", end='\r')
     return train_hist
+
+
+
+class MaskedMSELoss(nn.Module):
+    """
+    test_real = torch.Tensor([[1,1,1,1,1,1,1,1,1,1,1,1,1],
+                    [1,1,1,1,1,1,1,1,1,1,1,1,1],
+                    [1,1,1,1,1,1,1,1,1,1,1,1,1],
+                    [1,1,1,1,1,1,1,1,1,1,1,1,1]])
+    test_target = torch.Tensor([[1,1,1,1,1,1,1,1,1,1,1,1,1],
+                        [0,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [1,1,1,1,1,1,1,1,1,1,1,1,1],
+                        [1,1,1,1,1,1,1,1,1,1,1,1,1]])
+    test_mask = torch.Tensor([[1,1,1,1,1,1,1,1,1,1,1,1,1],
+                        [0,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [1,1,1,1,1,1,1,1,1,1,1,1,1],
+                        [1,1,1,1,1,1,1,1,1,1,1,1,1]])
+    train_criterion = MaskedMSELoss(test_mask) -> 0.0
+
+    print(train_criterion(test_real,test_target))
+    test_real = torch.Tensor([[1,1,1,1,1,1,1,1,1,1,1,1,1],
+                        [1,1,1,1,1,1,1,1,1,1,1,1,1],
+                        [1,1,1,1,1,1,1,1,1,1,1,1,1],
+                        [1,1,1,1,1,1,1,1,1,1,1,1,1]])
+    test_target = torch.Tensor([[1,1,1,1,1,1,1,1,1,1,1,1,1],
+                        [0,0,0,0,0,0,0,0,0,0,0,0,0],
+                        [1,1,1,1,1,1,1,1,1,1,1,1,1],
+                        [0,0,0,0,0,0,0,0,0,0,0,0,0]])
+    print(train_criterion(test_real,test_target)) -> 0.3333
+    """
+    def __init__(self, mask):
+        if not isinstance(mask, torch.Tensor):
+            mask = torch.Tensor(mask).float()
+        mask.requires_grad_(False)
+        self.nonzero = mask.sum()
+        self.mask = mask
+        super().__init__()
+
+    def forward(self, input: torch.Tensor, target: torch.Tensor):
+        return functional_MaskedMSELoss(input,target,self.mask)
+    
+def functional_MaskedMSELoss(input: torch.Tensor, target: torch.Tensor, mask:torch.Tensor):
+    if not isinstance(mask, torch.Tensor):
+        mask = torch.Tensor(mask).float()
+    mask.requires_grad_(False)
+    nonzero = mask.sum()
+    mse_loss = F.mse_loss(input, target, reduction='none')
+    masked_loss = (mask * mse_loss).sum()
+    return masked_loss/nonzero
+        
