@@ -84,18 +84,19 @@ def merge_dfs(dfs: dict):
     df_conc = pd.concat(dfs, axis=1).sort_values(by='date')
     return df_conc
 
-def load_y(daterange = ['1973-01-01', '2017-01-01']):
+def load_y(daterange = ['1973-01-01', '2023-01-01']):
     df = pd.read_csv('../Andreini_data/data_transformed.csv', index_col=0)
     df.index = pd.to_datetime(df.index)
     #interpolate gpdc column
     df['GDPC1'] = df['GDPC1'].interpolate(method='spline', order=1)
     df = df.loc[daterange[0]:daterange[1]]
-    df = df.dropna(axis=1, how='any')
+    #df = df.dropna(axis=1, how='any')
     y = df.values
+    mask = (~np.isnan(y)).astype('float')
     #y= (y-y.min(axis=0))/(y.max(axis=0)-y.min(axis=0))
     y = y - y.mean(axis=0)
     y = y / np.std(y,axis=0)
-    return y
+    return y, mask, df.index
 
 if __name__ == "__main__":
     codes = pd.read_csv('codes.txt', sep=' ')

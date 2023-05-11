@@ -10,14 +10,14 @@ import ml_collections as mlc
 
 RESULT_DIR = "./Results/"
 
-def logResults(trainHist: dict, model: AutoEncoder, cfg: mlc.ConfigDict):
+def logResults(trainHist: dict, model: AutoEncoder, cfg: mlc.ConfigDict, name:str = None):
     dgpIndex = cfg.saved_index 
     if not os.path.exists(f"{RESULT_DIR}{dgpIndex}"):
         os.mkdir(f"{RESULT_DIR}{dgpIndex}")
 
     i = len(os.listdir(f"{RESULT_DIR}{dgpIndex}"))
     dt = datetime.now()
-    dir =  f"{dgpIndex}/{i}_{dt.strftime('%m%d%Y_%H:%M:%S')}"
+    dir =  f"{dgpIndex}/{i}_{name if name is not None else 'Unnamed'}_{dt.strftime('%m%d%Y_%H:%M:%S')}"
     print(f"{RESULT_DIR}{dir}")
     os.mkdir(f"{RESULT_DIR}{dir}")
 

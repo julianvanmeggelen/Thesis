@@ -160,12 +160,19 @@ def train_val_split(X: torch.Tensor, val_split=0.3, seed=None, batch_size=64, lo
     return DataLoader(X_train, batch_size=batch_size, shuffle=True), DataLoader(X_val, batch_size=batch_size)
 
 def val_mse(model: nn.Module, X: torch.utils.data.DataLoader):
+    if not isinstance(X, torch.utils.data.DataLoader):
+        return val_mse_tensor(model, X)
     res = 0.0
     for i, batch in enumerate(X):
         pred = model(batch)
         batch_loss = F.mse_loss(pred, batch)
         res += batch_loss 
     return res.item()/len(X)
+
+def val_mse_tensor(model: nn.Module, X: torch.utils.data.DataLoader):
+    pred = model(X)
+    loss = F.mse_loss(pred, X)
+    return loss.item()
 
 
 
@@ -195,7 +202,7 @@ def append_train_hist(X_train: torch.Tensor, mod: nn.Module, train_hist: dict, m
     mod.train()
     return train_hist
                       
-def train(X_train: torch.Tensor, model: AutoEncoder, n_epoch:int, X_val: torch.Tensor = None, optimizer: optim.Optimizer = optim.Adam, criterion: nn.Module = nn.MSELoss(), batch_size: int=64, lr: float = 0.0001, epoch_callback=None, verbose: bool = True, metrics: list[Metric] = None):
+def train(X_train: torch.Tensor, model: AutoEncoder, n_epoch:int, X_val: torch.Tensor = None, optimizer: optim.Optimizer = optim.Adam, criterion: nn.Module = nn.MSELoss(), batch_size: int=256, lr: float = 0.0001, epoch_callback=None, verbose: bool = True, metrics: list[Metric] = None):
     """
     Vanilla gradient descent using Adam
     """
@@ -227,7 +234,7 @@ def train(X_train: torch.Tensor, model: AutoEncoder, n_epoch:int, X_val: torch.T
         if epoch_callback: #callback for e.g hyperparamer optimization
             epoch_callback(train_hist)
         train_hist['train_loss'].append(running_loss/len(X_train))
-        train_hist = append_train_hist(X_train,X_val,model,train_hist,metrics)
+        train_hist = append_train_hist(X_train=X_train,X_val=X_val,mod=model,train_hist=train_hist,metrics=metrics)
         if verbose:
             print(f"Epoch {epoch} | {train_hist['train_loss'][-1]}", end='\r')
     return train_hist
