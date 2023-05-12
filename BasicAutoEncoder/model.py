@@ -36,7 +36,7 @@ class OrthoLoss(nn.Module):
 
 
 class Encoder(nn.Module):
-    def __init__(self, hidden_dim: list = [500,200,100], activation: nn.Module = nn.Tanh(), use_batchnorm: bool = False, lastLayerLinear: bool=False, use_xavier:bool = True):
+    def __init__(self, hidden_dim: list = [500,200,100], activation: nn.Module = nn.Tanh(), use_batchnorm: bool = False, lastLayerLinear: bool=False, use_xavier:bool = True, init_function = None):
         super().__init__()
         self.n_hidden = len(hidden_dim)
         self.hidden_dim: list = hidden_dim
@@ -44,19 +44,22 @@ class Encoder(nn.Module):
         self.use_batchnorm: bool = use_batchnorm
         self.lastLayerLinear = lastLayerLinear
         self.use_xavier = use_xavier
-        self.sequential = self._get_sequential()
+        self.sequential = self._get_sequential(init_function=init_function)
 
-    def _get_sequential(self): #compile to nn.Sequential
+    def _get_sequential(self, init_function): #compile to nn.Sequential
         res = OrderedDict()
         for i, lin in enumerate(self.hidden_dim[:-1]):
             res[f"linear_{i}"] = nn.Linear(self.hidden_dim[i],self.hidden_dim[i+1]) 
-            if self.use_xavier:
+            
+            if init_function:
+                init_function(res[f"linear_{i}"].weight)
+            elif self.use_xavier:
                 nn.init.xavier_uniform(res[f"linear_{i}"].weight)
 
             res[f"activation_{i}"] = nn.Identity() if i == len(self.hidden_dim)-2 and self.lastLayerLinear else self.activation()
             if self.use_batchnorm and i != self.n_hidden-2:
                 res[f"batchnorm_{i}"]  = nn.BatchNorm1d(self.hidden_dim[i+1])
-
+        self.init_method = None #remove so object can be pickled
         return nn.Sequential(res)
 
     def forward(self, x):
@@ -64,7 +67,7 @@ class Encoder(nn.Module):
         return out
 
 class Decoder(nn.Module):
-    def __init__(self, linear: bool = False, hidden_dim: list = [100,200,500], activation: nn.Module = nn.Tanh(), use_batchnorm: bool = False, lastLayerLinear: bool=False, use_xavier: bool = False):
+    def __init__(self, linear: bool = False, hidden_dim: list = [100,200,500], activation: nn.Module = nn.Tanh(), use_batchnorm: bool = False, lastLayerLinear: bool=False, use_xavier: bool = False, init_function = None):
         super().__init__()
         assert (linear and len(hidden_dim) == 2) or (not linear)
         self.n_hidden = len(hidden_dim)
@@ -73,13 +76,15 @@ class Decoder(nn.Module):
         self.use_batchnorm: bool = use_batchnorm
         self.lastLayerLinear = lastLayerLinear
         self.use_xavier = use_xavier
-        self.sequential = self._get_sequential()
+        self.sequential = self._get_sequential(init_function=init_function)
 
-    def _get_sequential(self): #compile to nn.Sequential
+    def _get_sequential(self, init_function): #compile to nn.Sequential
         res = OrderedDict()
         for i, lin in enumerate(self.hidden_dim[:-1]):
             res[f"linear_{i}"] = nn.Linear(self.hidden_dim[i],self.hidden_dim[i+1]) 
-            if self.use_xavier:
+            if init_function:
+                init_function(res[f"linear_{i}"].weight)
+            elif self.use_xavier:
                 nn.init.xavier_uniform(res[f"linear_{i}"].weight)
                 
             res[f"activation_{i}"] = nn.Identity() if i == len(self.hidden_dim)-2 and self.lastLayerLinear else self.activation()
@@ -191,14 +196,14 @@ def append_train_hist(X_train: torch.Tensor, mod: nn.Module, train_hist: dict, m
             try:
                 train_hist[f"train_{metric.key}"].append(metric(X=X_train,y=X_train,mod=mod, mode='train'))
             except Exception as e:
-                print(F"Exception encountered while computing metric {metric.key}: {e}")
+                #print(F"Exception encountered while computing metric {metric.key}: {e}")
                 train_hist[f"train_{metric.key}"].append(np.nan)
             if X_val is not None:
                 try:
                     train_hist[f"val_{metric.key}"].append(metric(X=X_val,y=X_val,mod=mod, mode='val'))
                 except Exception as e:
                     train_hist[f"val_{metric.key}"].append(np.nan)
-                    print(F"Exception encountered while computing metric {metric.key}: {e}")
+                    #print(F"Exception encountered while computing metric {metric.key}: {e}")
     mod.train()
     return train_hist
                       

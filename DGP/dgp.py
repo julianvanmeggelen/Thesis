@@ -14,6 +14,7 @@ def getSaved(index: int = 1, T:int = 2048) -> Tuple[np.ndarray, np.ndarray, nn.M
     y = np.load(f"../DGP//saved/y_{index}.npy")[:T]
     f = np.load(f"../DGP/saved/f_{index}.npy")[:T]
     dec = torch.load(f"../DGP/saved/dec_{index}.pt")
+    theoreticalOptimum(dec,f,y)
     return f,y,dec
 
 def simulateVar1(x0, delta, lamda, T, mu, omega, warmup): #Var 1
@@ -26,7 +27,8 @@ def simulateVar1(x0, delta, lamda, T, mu, omega, warmup): #Var 1
         xt = delta + lamda @ res[-1] + residuals
         res.append(xt)
     y = np.array(res)
-    y= (y-y.min(axis=0))/(y.max(axis=0)-y.min(axis=0))
+    #y= (y-y.min(axis=0))/(y.max(axis=0)-y.min(axis=0))
+    y= (y-y.min())/(y.max()-y.min())
     return y[int(warmup*T):]
 
 def simulateRandomVar1(k, T=100, warmup=0.1): #VAR 1
@@ -79,11 +81,14 @@ def getSimulatedNonlinearVarP(factor_dim:int, obs_dim:int, T:int, dec: Decoder =
     if centered:
         y = y-y.mean(axis=0)
     if normalized:
-        y_min = y.min(axis=0)
-        y_max = y.max(axis=0)
+        #y_min = y.min(axis=0)
+        #y_max = y.max(axis=0)
+        y_min = y.min()
+        y_max = y.max()
         y = (y-y_min)/(y_max-y_min)
 
     y += obs_residual
+    theoreticalOptimum(dec,f,y)
     return f, y, obs_residual
 
 
@@ -148,3 +153,7 @@ def simulateRandomVarP(d:int, p:int, T:int, T_warmup = 100, covar: np.ndarray = 
     return varsim(coeff, intercept=np.zeros(d), sig_u=covar, steps=T, initvalues= np.random.multivariate_normal(np.zeros(d), covar, size=(d,p)))[T_warmup:,:]
     return proc.simulate_var(steps = T, initvalues = np.random.multivariate_normal(np.zeros(d), covar, size=d))
 
+def theoreticalOptimum(dec,f,y):
+    y_hat = dec(torch.Tensor(f).float()).detach().numpy()
+    opt_mse = np.mean((y_hat-y)**2)
+    print(f"Theoretical optimal mse for f, y, enc: {opt_mse:.3f}")

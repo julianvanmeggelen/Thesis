@@ -24,9 +24,8 @@ cfg.saved_index = 3 #gdp to be used
 
 #Training config
 cfg.batch_size = 512
-cfg.n_epoch = 100
+cfg.n_epoch = 30
 cfg.max_iter = 30
-cfg.n_epoch = 20
 cfg.lr = 0.0001
 
 
