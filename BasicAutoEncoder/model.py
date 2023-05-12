@@ -33,7 +33,8 @@ class OrthoLoss(nn.Module):
             self.trainHist['loss_repr'].append(reprLoss.item())
             self.trainHist['loss_orth'].append(orthogonalLoss.item())
         return reprLoss + self.alpha * orthogonalLoss + torch.nn.functional.mse_loss(torch.mean(f, dim=0),torch.zeros(f.shape[1]))
-        
+
+
 class Encoder(nn.Module):
     def __init__(self, hidden_dim: list = [500,200,100], activation: nn.Module = nn.Tanh(), use_batchnorm: bool = False, lastLayerLinear: bool=False, use_xavier:bool = True):
         super().__init__()
@@ -44,7 +45,6 @@ class Encoder(nn.Module):
         self.lastLayerLinear = lastLayerLinear
         self.use_xavier = use_xavier
         self.sequential = self._get_sequential()
-     
 
     def _get_sequential(self): #compile to nn.Sequential
         res = OrderedDict()
