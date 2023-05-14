@@ -1,5 +1,3 @@
-%load_ext autoreload
-%autoreload 2
 import numpy as np
 import sys
 from statsmodels.tsa.arima.model import ARIMA 

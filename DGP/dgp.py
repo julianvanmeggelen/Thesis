@@ -81,10 +81,10 @@ def getSimulatedNonlinearVarP(factor_dim:int, obs_dim:int, T:int, dec: Decoder =
     if centered:
         y = y-y.mean(axis=0)
     if normalized:
-        #y_min = y.min(axis=0)
-        #y_max = y.max(axis=0)
-        y_min = y.min()
-        y_max = y.max()
+        y_min = y.min(axis=0)
+        y_max = y.max(axis=0)
+        #y_min = y.min()
+        #y_max = y.max()
         y = (y-y_min)/(y_max-y_min)
 
     y += obs_residual
