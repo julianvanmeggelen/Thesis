@@ -6,7 +6,7 @@ tickers = pd.read_html(URL)[0]['Symbol'].tolist()
 
 
 
-def getSp500Data(start= '1990-01-01', end= '2023-01-01', f=None):
+def getSp500Data(start= '1920-01-01', end= '2023-01-01', f=None):
     f = f"./dsp500{start}_{end}.csv"
     data = yf.download(tickers, start=start, end=end)
     data.to_csv(f)

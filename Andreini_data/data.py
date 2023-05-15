@@ -84,7 +84,7 @@ def merge_dfs(dfs: dict):
     df_conc = pd.concat(dfs, axis=1).sort_values(by='date')
     return df_conc
 
-def load_y(daterange = ['1973-01-01', '2023-01-01']):
+def load_y(daterange = ['1900-01-01', '2023-01-01']):
     df = pd.read_csv('../Andreini_data/data_transformed.csv', index_col=0)
     df.index = pd.to_datetime(df.index)
     #interpolate gpdc column
