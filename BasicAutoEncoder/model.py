@@ -32,11 +32,11 @@ class OrthoLoss(nn.Module):
         if self.trainHist is not None:
             self.trainHist['loss_repr'].append(reprLoss.item())
             self.trainHist['loss_orth'].append(orthogonalLoss.item())
-        return reprLoss + self.alpha * orthogonalLoss + torch.nn.functional.mse_loss(torch.mean(f, dim=0),torch.zeros(f.shape[1]))
+        return reprLoss + self.alpha * orthogonalLoss #+ torch.nn.functional.mse_loss(torch.mean(f, dim=0),torch.zeros(f.shape[1]))
 
 
 class Encoder(nn.Module):
-    def __init__(self, hidden_dim: list = [500,200,100], activation: nn.Module = nn.Tanh(), use_batchnorm: bool = False, lastLayerLinear: bool=False, use_xavier:bool = True, init_function = None):
+    def __init__(self, hidden_dim: list = [500,200,100], activation: nn.Module = nn.Tanh(), use_batchnorm: bool = False, lastLayerLinear: bool=False, use_xavier:bool = True, init_function = None, dropout = 0.0):
         super().__init__()
         self.n_hidden = len(hidden_dim)
         self.hidden_dim: list = hidden_dim
@@ -44,6 +44,7 @@ class Encoder(nn.Module):
         self.use_batchnorm: bool = use_batchnorm
         self.lastLayerLinear = lastLayerLinear
         self.use_xavier = use_xavier
+        self.dropout = dropout
         self.sequential = self._get_sequential(init_function=init_function)
 
     def _get_sequential(self, init_function): #compile to nn.Sequential
@@ -57,6 +58,9 @@ class Encoder(nn.Module):
                 nn.init.xavier_uniform(res[f"linear_{i}"].weight)
 
             res[f"activation_{i}"] = nn.Identity() if i == len(self.hidden_dim)-2 and self.lastLayerLinear else self.activation()
+            if self.dropout:
+                res[f"dropout_{i}"] = nn.Dropout(self.dropout)
+
             if self.use_batchnorm and i != self.n_hidden-2:
                 res[f"batchnorm_{i}"]  = nn.BatchNorm1d(self.hidden_dim[i+1])
         self.init_method = None #remove so object can be pickled
@@ -67,7 +71,7 @@ class Encoder(nn.Module):
         return out
 
 class Decoder(nn.Module):
-    def __init__(self, linear: bool = False, hidden_dim: list = [100,200,500], activation: nn.Module = nn.Tanh(), use_batchnorm: bool = False, lastLayerLinear: bool=False, use_xavier: bool = False, init_function = None):
+    def __init__(self, linear: bool = False, hidden_dim: list = [100,200,500], activation: nn.Module = nn.Tanh(), use_batchnorm: bool = False, lastLayerLinear: bool=False, use_xavier: bool = False, init_function = None, dropout=0.0):
         super().__init__()
         assert (linear and len(hidden_dim) == 2) or (not linear)
         self.n_hidden = len(hidden_dim)
@@ -76,6 +80,7 @@ class Decoder(nn.Module):
         self.use_batchnorm: bool = use_batchnorm
         self.lastLayerLinear = lastLayerLinear
         self.use_xavier = use_xavier
+        self.dropout = dropout
         self.sequential = self._get_sequential(init_function=init_function)
 
     def _get_sequential(self, init_function): #compile to nn.Sequential
@@ -88,6 +93,9 @@ class Decoder(nn.Module):
                 nn.init.xavier_uniform(res[f"linear_{i}"].weight)
                 
             res[f"activation_{i}"] = nn.Identity() if i == len(self.hidden_dim)-2 and self.lastLayerLinear else self.activation()
+            if self.dropout:
+                res[f"dropout_{i}"] = nn.Dropout(self.dropout)
+
             #if i < self.n_hidden -2: #lastlayer always linear
                 #res.append(self.activation)
             if self.use_batchnorm and i < self.n_hidden-2:
@@ -207,7 +215,7 @@ def append_train_hist(X_train: torch.Tensor, mod: nn.Module, train_hist: dict, m
     mod.train()
     return train_hist
                       
-def train(X_train: torch.Tensor, model: AutoEncoder, n_epoch:int, X_val: torch.Tensor = None, optimizer: optim.Optimizer = optim.Adam, criterion: nn.Module = nn.MSELoss(), batch_size: int=256, lr: float = 0.0001, epoch_callback=None, verbose: bool = True, metrics: list[Metric] = None):
+def train(X_train: torch.Tensor, model: AutoEncoder, n_epoch:int, X_val: torch.Tensor = None, optimizer: optim.Optimizer = optim.Adam, criterion: nn.Module = nn.MSELoss(), batch_size: int=256, lr: float = 0.0001, epoch_callback=None, verbose: bool = True, metrics: list[Metric] = None, train_hist=None):
     """
     Vanilla gradient descent using Adam
     """
@@ -219,7 +227,46 @@ def train(X_train: torch.Tensor, model: AutoEncoder, n_epoch:int, X_val: torch.T
    
     optimizer = optimizer(model.parameters(), lr=lr)
 
-    train_hist = init_train_hist(metrics)
+    if train_hist is None:
+        train_hist = init_train_hist(metrics)
+    
+    if isinstance(criterion, OrthoLoss):
+        criterion.set_hist(train_hist) 
+    for epoch in range(n_epoch):
+        running_loss = 0.0
+        for i, batch in enumerate(X_train):
+            optimizer.zero_grad()
+            out = model(batch)
+            loss = criterion(out, batch)
+            loss.backward()
+            optimizer.step()
+            running_loss += loss.item()
+        if use_val:
+                val_loss = val_mse(model=model, X=X_val)
+                train_hist['val_loss'].append(val_loss)
+        if epoch_callback: #callback for e.g hyperparamer optimization
+            epoch_callback(train_hist)
+        train_hist['train_loss'].append(running_loss/len(X_train))
+        train_hist = append_train_hist(X_train=X_train,X_val=X_val,mod=model,train_hist=train_hist,metrics=metrics)
+        if verbose:
+            print(f"Epoch {epoch} | {train_hist['train_loss'][-1]}", end='\r')
+    return train_hist
+
+
+def trainDenoising(X_train: torch.Tensor, model: AutoEncoder, n_epoch:int, X_val: torch.Tensor = None, optimizer: optim.Optimizer = optim.Adam, criterion: nn.Module = nn.MSELoss(), batch_size: int=256, lr: float = 0.0001, epoch_callback=None, verbose: bool = True, metrics: list[Metric] = None, train_hist=None):
+    """
+    Vanilla gradient descent using Adam
+    """
+    use_val = (X_val is not None)
+    if not isinstance(X_train, DataLoader):
+        X_train = DataLoader(X_train, batch_size=batch_size)
+    if use_val and not isinstance(X_val, DataLoader):
+        X_val = DataLoader(X_val, batch_size=batch_size)
+   
+    optimizer = optimizer(model.parameters(), lr=lr)
+    
+    if train_hist is None:
+        train_hist = init_train_hist(metrics)
 
     
     if isinstance(criterion, OrthoLoss):
@@ -227,6 +274,7 @@ def train(X_train: torch.Tensor, model: AutoEncoder, n_epoch:int, X_val: torch.T
     for epoch in range(n_epoch):
         running_loss = 0.0
         for i, batch in enumerate(X_train):
+            batch = batch + torch.rand(size=batch.shape)/100
             optimizer.zero_grad()
             out = model(batch)
             loss = criterion(out, batch)

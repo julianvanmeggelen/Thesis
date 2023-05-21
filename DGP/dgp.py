@@ -13,8 +13,11 @@ from typing import Tuple
 def getSaved(index: int = 1, T:int = 2048) -> Tuple[np.ndarray, np.ndarray, nn.Module]:
     y = np.load(f"../DGP//saved/y_{index}.npy")[:T]
     f = np.load(f"../DGP/saved/f_{index}.npy")[:T]
-    dec = torch.load(f"../DGP/saved/dec_{index}.pt")
-    theoreticalOptimum(dec,f,y)
+    dec=None
+    try :
+        dec = torch.load(f"../DGP/saved/dec_{index}.pt")
+    except:
+        dec = None
     return f,y,dec
 
 def simulateVar1(x0, delta, lamda, T, mu, omega, warmup): #Var 1
@@ -123,6 +126,7 @@ def getVarCoeffient(d:int, p: int, covar:np.ndarray=None, l:float=1.01, diagonal
             #locs = [loc/l for loc in locs]
         n_iter+=1
     print(f"Obtained stable system after {n_iter} iterations.")
+    print(coefs)
     return coefs, proc
 
 def simulateVarP(coefs: np.ndarray, covar:np.ndarray=None, initial_values=None, T=200):
@@ -136,11 +140,12 @@ def simulateVarP(coefs: np.ndarray, covar:np.ndarray=None, initial_values=None, 
         covar = np.eye(d)
     assert initial_values.shape == (d,p)
     #res = np.zeros(shape=(d,T))
-    res = np.random.multivariate_normal(np.zeros(d),covar, size=T+p).T
+    residuals = np.random.multivariate_normal(np.zeros(d),covar, size=T+p).T
+    res = np.zeros(shape=(d,T+p))
     res[:,0:p] = initial_values
     #resids = np.random.multivariate_normal(np.ones(d),covar, size=T)
     for t in range(p,T+p):
-        res[:,t] += np.tensordot(coefs.T, res[:,t-p:t]) 
+        res[:,t] += np.tensordot(coefs.T, res[:,t-p:t])+residuals[:,t]
     return res[:,p:]
 
     

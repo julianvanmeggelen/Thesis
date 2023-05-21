@@ -9,8 +9,10 @@ sys.path.append('../')
 from BasicAutoEncoder.model import train_val_split, AutoEncoder, OrthoLoss, val_mse, init_train_hist, append_train_hist, functional_MaskedMSELoss
 from BasicAutoEncoder.Metric import Metric
 
-
-from mcmc.ErrorProcess import ErrorProcess
+try:
+    from mcmc.ErrorProcess import ErrorProcess
+except:
+    from ErrorProcess import ErrorProcess
 
 def check_convergence(loss_hist: list, eps = 2e-10):
     if len(loss_hist) < 11:
@@ -19,7 +21,7 @@ def check_convergence(loss_hist: list, eps = 2e-10):
         return True
     return ((np.array(loss_hist)[-11:-1] - np.array(loss_hist)[-10:]) < eps).all()
 
-def trainMCMC(X_train: torch.Tensor, model: AutoEncoder, errorProcess: ErrorProcess, n_epoch:int, X_val:torch.Tensor, max_iter:int = None, optimizer: optim.Optimizer = optim.Adam, criterion: nn.Module = nn.MSELoss(), batch_size: int=64, lr: float = 0.0001, epoch_callback=None, verbose: bool = True,  metrics: list[Metric] = None):
+def trainMCMC(X_train: torch.Tensor, model: AutoEncoder, errorProcess: ErrorProcess, n_epoch:int, X_val:torch.Tensor, max_iter:int = None, optimizer: optim.Optimizer = optim.Adam, criterion: nn.Module = nn.MSELoss(), batch_size: int=64, lr: float = 0.0001, epoch_callback=None, verbose: bool = True,  metrics: list[Metric] = None, train_hist=None):
     """
     MCMC gradient descent
     """
@@ -33,15 +35,15 @@ def trainMCMC(X_train: torch.Tensor, model: AutoEncoder, errorProcess: ErrorProc
     print(X_train.shape, X_val.shape if use_val else None)
    
     optimizer = optimizer(model.parameters(), lr=lr)
-    train_hist = init_train_hist(metrics)
-
+    if train_hist is None:
+            train_hist = init_train_hist(metrics)
     if isinstance(criterion, OrthoLoss):
         criterion.set_hist(train_hist) 
 
     convergence = False
     X_arr = X_train.detach().numpy() 
     errorProcess.T = X_arr.shape[0]
-    errorProcess.initialize()
+    #errorProcess.initialize()
     iter=0
     while not convergence:
         y_tilde = X_arr - errorProcess.conditionalExpectation()
@@ -75,7 +77,7 @@ def trainMCMC(X_train: torch.Tensor, model: AutoEncoder, errorProcess: ErrorProc
     return train_hist
 
 
-def trainMCMCMasked(X_train: torch.Tensor, weights_train:np.ndarray, model: AutoEncoder, errorProcess: ErrorProcess, n_epoch:int, X_val:torch.Tensor, weights_val:np.ndarray, max_iter:int = 50, optimizer: optim.Optimizer = optim.Adam, batch_size: int=64, lr: float = 0.0001, epoch_callback=None, verbose: bool = True,  metrics: list[Metric] = None):
+def trainMCMCMasked(X_train: torch.Tensor, weights_train:np.ndarray, model: AutoEncoder, errorProcess: ErrorProcess, n_epoch:int, X_val:torch.Tensor, weights_val:np.ndarray, max_iter:int = 50, optimizer: optim.Optimizer = optim.Adam, batch_size: int=64, lr: float = 0.0001, epoch_callback=None, verbose: bool = True,  metrics: list[Metric] = None, train_hist=None):
     """
     MCMC gradient descent
     """
@@ -91,8 +93,8 @@ def trainMCMCMasked(X_train: torch.Tensor, weights_train:np.ndarray, model: Auto
     print(X_train.shape, X_val.shape if use_val else None)
    
     optimizer = optimizer(model.parameters(), lr=lr)
-    train_hist = init_train_hist(metrics)
-
+    if train_hist is None:
+            train_hist = init_train_hist(metrics)
     convergence = False
     X_arr = X_train.detach().numpy() 
     errorProcess.T = X_arr.shape[0]
