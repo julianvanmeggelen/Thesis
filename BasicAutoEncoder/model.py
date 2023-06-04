@@ -11,6 +11,8 @@ sys.path.append('../')
 
 from BasicAutoEncoder.Metric import Metric
 
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
 class OrthoLoss(nn.Module):
     def __init__(self, enc, alpha, trainHist=None):
         super().__init__()
@@ -221,8 +223,10 @@ def train(X_train: torch.Tensor, model: AutoEncoder, n_epoch:int, X_val: torch.T
     """
     use_val = (X_val is not None)
     if not isinstance(X_train, DataLoader):
+        X_train.to(DEVICE)
         X_train = DataLoader(X_train, batch_size=batch_size)
     if use_val and not isinstance(X_val, DataLoader):
+        X_val.to(DEVICE)
         X_val = DataLoader(X_val, batch_size=batch_size)
    
     optimizer = optimizer(model.parameters(), lr=lr)

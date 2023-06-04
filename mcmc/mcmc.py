@@ -8,6 +8,7 @@ import sys
 sys.path.append('../')
 from BasicAutoEncoder.model import train_val_split, AutoEncoder, OrthoLoss, val_mse, init_train_hist, append_train_hist, functional_MaskedMSELoss
 from BasicAutoEncoder.Metric import Metric
+DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 try:
     from mcmc.ErrorProcess import ErrorProcess
@@ -30,9 +31,10 @@ def trainMCMC(X_train: torch.Tensor, model: AutoEncoder, errorProcess: ErrorProc
     if not isinstance(X_train, torch.Tensor): #We don't want to use a DataLoader at this point
         X_train = torch.Tensor(X_train)
     if use_val and not isinstance(X_val, DataLoader):
-        X_val= torch.Tensor(X_val)
+        X_val= torch.Tensor(X_val).to(DEVICE)
 
     print(X_train.shape, X_val.shape if use_val else None)
+    model.to(DEVICE)    
    
     optimizer = optimizer(model.parameters(), lr=lr)
     if train_hist is None:
@@ -41,7 +43,7 @@ def trainMCMC(X_train: torch.Tensor, model: AutoEncoder, errorProcess: ErrorProc
         criterion.set_hist(train_hist) 
 
     convergence = False
-    X_arr = X_train.detach().numpy() 
+    X_arr = X_train.detach().numpy()
     errorProcess.T = X_arr.shape[0]
     #errorProcess.initialize()
     iter=0
@@ -49,9 +51,13 @@ def trainMCMC(X_train: torch.Tensor, model: AutoEncoder, errorProcess: ErrorProc
         y_tilde = X_arr - errorProcess.conditionalExpectation()
         for epoch in range(n_epoch):
             y_tilde_mc = y_tilde + errorProcess.sample()
-            batch_dl = DataLoader(torch.Tensor(y_tilde_mc).float(), batch_size = batch_size, shuffle=True)
+            y_tilde_mc_tensor = torch.Tensor(y_tilde_mc).float()
+            y_tilde_mc_tensor = y_tilde_mc_tensor.to(DEVICE)
+
+            batch_dl = DataLoader(y_tilde_mc_tensor, batch_size = batch_size, shuffle=True)
             running_loss = 0.0
             for i, batch in enumerate(batch_dl):
+                batch.to(DEVICE)
                 optimizer.zero_grad()
                 out = model(batch)
                 loss = criterion(out, batch)
@@ -67,7 +73,7 @@ def trainMCMC(X_train: torch.Tensor, model: AutoEncoder, errorProcess: ErrorProc
             train_hist = append_train_hist(X_train = X_train,X_val = X_val,mod=model,train_hist = train_hist, metrics = metrics)
             if verbose:
                 print(f"Epoch {epoch} | {train_hist['train_loss'][-1]}", end='\r')
-        eps = X_arr- model(X_train).detach().numpy()
+        eps = X_arr- model(X_train.to(DEVICE)).cpu().detach().numpy()
         errorProcess.fit(eps)
         iter+=1
         convergence = iter > max_iter#check_convergence(train_hist['train_loss']) or (max_iter not None and iter > max_iter)

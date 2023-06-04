@@ -10,8 +10,14 @@ pandas = "*"
 tabulate = "*"
 statsmodels = "*"
 ml-collections = "*"
+matplotlib = "*"
+seaborn = "*"
+sklearn = "*"
+scikit-learn = "*"
+tqdm = "*"
 
 [dev-packages]
+ipykernel = "*"
 
 [requires]
 python_version = "3.9"
