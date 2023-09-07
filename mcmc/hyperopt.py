@@ -38,9 +38,9 @@ class HyperOptConfig(TypedDict):
 
 DEFAULT_SEARCH_SPACE: HyperOptConfig = {
     'hidden': tune.grid_search([2, 4, 6, 8, 10]),
-    'activation': tune.grid_search(["Tanh", "Sigmoid"]),
-    'lr': 0.0005,#tune.grid_search([0.0001, 0.0005, 0.001, 0.005]),
-    'dropout': tune.quniform(0.0,0.9,0.1),
+    'activation': tune.grid_search(["Tanh", "Sigmoid", "ReLU"]),
+    'lr': tune.grid_search([0.0001, 0.0005, 0.001, 0.005]),
+    'dropout': 0#tune.quniform(0.0,0.9,0.1),
     'n_iter': tune.quniform(0.0,100,10)
 }
 

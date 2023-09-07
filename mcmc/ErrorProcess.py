@@ -62,9 +62,9 @@ class IIDErrorProcess(ErrorProcess):
 
 
     def initialize(self) -> None:
-        eps_init = np.random.normal(size=(self.T,self.n), scale=0.001)
+        eps_init = np.random.normal(size=(self.T,self.n), scale=0.01)
         self.mu = np.mean(eps_init, axis=0)
-        self.cov = np.cov(eps_init.T) 
+        self.cov = np.identity(self.n)*10#np.cov(eps_init.T) 
         if self.diagonal:
             self.cov = np.eye(self.n)*self.cov
         #print(self.mu.shape, self.cov.shape)

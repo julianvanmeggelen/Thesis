@@ -220,8 +220,13 @@ def append_train_hist(X_train: torch.Tensor, mod: nn.Module, train_hist: dict, m
 def train(X_train: torch.Tensor, model: AutoEncoder, n_epoch:int, X_val: torch.Tensor = None, optimizer: optim.Optimizer = optim.Adam, criterion: nn.Module = nn.MSELoss(), batch_size: int=256, lr: float = 0.0001, epoch_callback=None, verbose: bool = True, metrics: list[Metric] = None, train_hist=None):
     """
     Vanilla gradient descent using Adam
-    """
+    """    
     use_val = (X_val is not None)
+    if not isinstance(X_train, torch.Tensor):
+        X_train = torch.Tensor(X_train).float()
+        if use_val:
+            X_val = torch.Tensor(X_val).float()
+
     if not isinstance(X_train, DataLoader):
         X_train.to(DEVICE)
         X_train = DataLoader(X_train, batch_size=batch_size)
@@ -262,6 +267,11 @@ def trainDenoising(X_train: torch.Tensor, model: AutoEncoder, n_epoch:int, X_val
     Vanilla gradient descent using Adam
     """
     use_val = (X_val is not None)
+
+    if not isinstance(X_train, torch.Tensor):
+        X_train = torch.Tensor(X_train).float()
+        if use_val:
+            X_val = torch.Tensor(X_val).float()
     if not isinstance(X_train, DataLoader):
         X_train = DataLoader(X_train, batch_size=batch_size)
     if use_val and not isinstance(X_val, DataLoader):
